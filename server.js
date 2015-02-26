@@ -2,7 +2,7 @@ var express = require("express");
 var WebSocketServer = require("ws").Server;
 
 var app = express();
-app.use("/", express.static(__dirname));
+app.use("/", express.static(__dirname + "/public"));
 
 var server = app.listen(8080);
 

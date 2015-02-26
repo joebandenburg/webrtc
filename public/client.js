@@ -19,7 +19,7 @@ var pc_config = {
 };
 var localStream;
 var peers = {};
-var ws = new WebSocket("ws://" + location.host + "/websocket");
+var ws = new WebSocket("wss://" + location.host + "/websocket");
 ws.onopen = function() {
     navigator.getUserMedia(constraints, function(stream) {
         localStream = stream;
