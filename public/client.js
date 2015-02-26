@@ -26,7 +26,7 @@ roomSpan.innerText = room;
 var localStream;
 var peers = {};
 
-var wsProtocol = (location.protocol === "https") ? "wss" : "ws";
+var wsProtocol = (location.protocol === "https:") ? "wss" : "ws";
 var ws = new WebSocket(wsProtocol + "://" + location.host + "/websocket?room=" + room);
 ws.onopen = function() {
     navigator.getUserMedia(constraints, function(stream) {
