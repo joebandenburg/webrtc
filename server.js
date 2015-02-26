@@ -1,3 +1,4 @@
+var argv = require("minimist")(process.argv.slice(2));
 var constants = require("constants");
 var fs = require("fs");
 var https = require("https");
@@ -11,23 +12,32 @@ app.use(function(req, res, next) {
 });
 app.use("/", express.static(__dirname + "/public"));
 
-var privateKey = fs.readFileSync("tls/privateKey.pem");
-var certificate = fs.readFileSync("tls/certificate.pem");
-var ca = fs.readFileSync("tls/ca.pem");
-var dhparams = fs.readFileSync("tls/dhparams.pem");
+var server;
+var port;
+if (argv.tls) {
+    var privateKey = fs.readFileSync("tls/privateKey.pem");
+    var certificate = fs.readFileSync("tls/certificate.pem");
+    var ca = fs.readFileSync("tls/ca.pem");
+    var dhparams = fs.readFileSync("tls/dhparams.pem");
 
-var server = https.createServer({
-    key: privateKey,
-    cert: certificate,
-    ca: ca,
-    secureProtocol: "SSLv23_method",
-    secureOptions: constants.SSL_OP_NO_SSLv3 | constants.SSL_OP_NO_SSLv2,
-    honorCipherOrder: true,
-    // from https://wiki.mozilla.org/Security/Server_Side_TLS
-    ciphers: "ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA",
-    ecdhCurve: "secp384r1",
-    dhparam: dhparams
-}, app).listen(443);
+    port = argv.port || 443;
+    server = https.createServer({
+        key: privateKey,
+        cert: certificate,
+        ca: ca,
+        secureProtocol: "SSLv23_method",
+        secureOptions: constants.SSL_OP_NO_SSLv3 | constants.SSL_OP_NO_SSLv2,
+        honorCipherOrder: true,
+        // from https://wiki.mozilla.org/Security/Server_Side_TLS
+        ciphers: "ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!EDH-RSA-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA",
+        ecdhCurve: "secp384r1",
+        dhparam: dhparams
+    }, app).listen(port);
+} else {
+    port = argv.port || 80;
+    server = app.listen(port);
+}
+console.log("Listening on " + port);
 
 var wss = new WebSocketServer({
     server: server,
