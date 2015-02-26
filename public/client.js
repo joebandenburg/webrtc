@@ -18,13 +18,14 @@ var pc_config = {
     }]
 };
 
-function getRoom() {
-    return /^\/rooms\/([a-z0-9A-Z]+)/.exec(location.pathname)[1];
-}
+var roomSpan = document.getElementById("room");
+var participantsSpan = document.getElementById("participants");
 
 var room = getRoom();
+roomSpan.innerText = room;
 var localStream;
 var peers = {};
+
 var wsProtocol = (location.protocol === "https") ? "wss" : "ws";
 var ws = new WebSocket(wsProtocol + "://" + location.host + "/websocket?room=" + room);
 ws.onopen = function() {
@@ -52,10 +53,12 @@ ws.onmessage = function(event) {
                     }));
                 }, handleError);
             }, handleError);
+            updateParticipants();
             break;
         case "leave":
             peers[message.id].video.remove();
             delete peers[message.id];
+            updateParticipants();
             break;
         case "offer":
             peers[message.id] = createPeer(message.id);
@@ -71,6 +74,7 @@ ws.onmessage = function(event) {
                     }, handleError);
                 }, handleError);
             }, handleError);
+            updateParticipants();
             break;
         case "answer":
             var peerConnection = peers[message.id].peerConnection;
@@ -87,6 +91,8 @@ ws.onmessage = function(event) {
             break;
     }
 };
+
+updateParticipants();
 
 function createPeer(forId) {
     var peerConnection = new RTCPeerConnection(pc_config);
@@ -120,4 +126,12 @@ function createPeer(forId) {
 
 function handleError(error) {
     console.log("Something went wrong", error);
+}
+
+function getRoom() {
+    return /^\/rooms\/([a-z0-9A-Z]+)/.exec(location.pathname)[1];
+}
+
+function updateParticipants() {
+    return participantsSpan.innerText = Object.keys(peers).length;
 }
