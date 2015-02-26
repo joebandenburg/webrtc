@@ -11,7 +11,7 @@ app.use(function(req, res, next) {
     res.header("Strict-Transport-Security", "max-age=864000; preload");
     next();
 });
-app.use("/", express.static(__dirname + "/public"));
+app.use("/rooms/:room", express.static(__dirname + "/public"));
 
 var server;
 var port;
@@ -60,7 +60,7 @@ wss.on("connection", function(ws) {
     ws.id = ids++;
     ws.room = url.parse(ws.upgradeReq.url, true).query.room;
     console.log("connection", ws.room, ws.id);
-    if (!rooms[ws.room]) {
+    if (!Object.prototype.hasOwnProperty.call(rooms, ws.room)) {
         rooms[ws.room] = {
             connections: {}
         };

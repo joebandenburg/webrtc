@@ -17,10 +17,16 @@ var pc_config = {
         url: "stun:stun.callwithus.com:3478"
     }]
 };
+
+function getRoom() {
+    return /^\/rooms\/([a-z0-9A-Z]+)/.exec(location.pathname)[1];
+}
+
+var room = getRoom();
 var localStream;
 var peers = {};
 var wsProtocol = (location.protocol === "https") ? "wss" : "ws";
-var ws = new WebSocket(wsProtocol + "://" + location.host + "/websocket?room=ao3bn4oudf");
+var ws = new WebSocket(wsProtocol + "://" + location.host + "/websocket?room=" + room);
 ws.onopen = function() {
     navigator.getUserMedia(constraints, function(stream) {
         localStream = stream;
