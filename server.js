@@ -3,6 +3,7 @@ var constants = require("constants");
 var fs = require("fs");
 var https = require("https");
 var express = require("express");
+var url = require("url");
 var WebSocketServer = require("ws").Server;
 
 var app = express();
@@ -45,38 +46,49 @@ var wss = new WebSocketServer({
 });
 
 var ids = 1;
-var connections = {};
+var rooms = {};
 
-var broadcast = function(fromId, message) {
-    Object.keys(connections).forEach(function(id) {
+var broadcast = function(room, fromId, message) {
+    Object.keys(room.connections).forEach(function(id) {
         if (id != fromId) {
-            connections[id].send(message);
+            room.connections[id].send(message);
         }
     });
 };
 
 wss.on("connection", function(ws) {
     ws.id = ids++;
-    console.log("connection", ws.id);
-    connections[ws.id] = ws;
+    ws.room = url.parse(ws.upgradeReq.url, true).query.room;
+    console.log("connection", ws.room, ws.id);
+    if (!rooms[ws.room]) {
+        rooms[ws.room] = {
+            connections: {}
+        };
+    }
+    var room = rooms[ws.room];
+    room.connections[ws.id] = ws;
     ws.on("message", function(data) {
         var message = JSON.parse(data);
-        console.log("message", ws.id, message);
+        console.log("message", ws.room, ws.id, message);
         message.id = ws.id;
         if (message.to) {
-            var otherWs = connections[message.to];
+            var otherWs = room.connections[message.to];
             if (otherWs) {
                 otherWs.send(JSON.stringify(message));
             }
         } else {
-            broadcast(ws.id, JSON.stringify(message));
+            broadcast(room, ws.id, JSON.stringify(message));
         }
     });
     ws.on("close", function() {
-        broadcast(ws.id, JSON.stringify({
+        console.log("close", ws.room, ws.id);
+        broadcast(room, ws.id, JSON.stringify({
             type: "leave",
             id: ws.id
         }));
-        delete connections[ws.id];
+        delete room.connections[ws.id];
+        if (room.connections.length === 0) {
+            delete rooms[ws.room];
+        }
     });
 });
