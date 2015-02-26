@@ -11,7 +11,8 @@ app.use(function(req, res, next) {
     res.header("Strict-Transport-Security", "max-age=864000; preload");
     next();
 });
-app.use("/rooms/:room", express.static(__dirname + "/public"));
+app.use("/", express.static(__dirname + "/public"));
+app.use("/rooms/:room", express.static(__dirname + "/public/room.html"));
 
 var server;
 var port;
