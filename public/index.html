@@ -7,20 +7,22 @@
 </head>
 <body>
 <div class="container">
-    <h1>WebRTC</h1>
-    <p>Enter a room name to join</p>
-    <form class="form-inline" id="form">
-        <input id="room" class="form-control" type="text" placeholder="Room name" />
-        <input class="btn btn-primary" type="submit" value="Join room" />
-    </form>
-    <script>
-        var form = document.getElementById("form");
-        var room = document.getElementById("room");
-        form.onsubmit = function() {
-            window.location.pathname = "/rooms/" + room.value;
-            return false;
-        }
-    </script>
+    <div class="jumbotron">
+        <h1>WebRTC</h1>
+        <p>Enter a room name to join</p>
+        <form class="form-inline" id="form">
+            <input id="room" class="form-control" type="text" placeholder="Room name" />
+            <input class="btn btn-primary" type="submit" value="Join room" />
+        </form>
+    </div>
 </div>
+<script>
+    var form = document.getElementById("form");
+    var room = document.getElementById("room");
+    form.onsubmit = function() {
+        window.location.pathname = "/rooms/" + room.value;
+        return false;
+    }
+</script>
 </body>
 </html>

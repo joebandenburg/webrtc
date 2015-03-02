@@ -1,14 +1,50 @@
 <!DOCTYPE html>
-<html>
+<html ng-app="WebRTC">
 <head lang="en">
     <meta charset="UTF-8">
     <title>WebRTC Prototype</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/style.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.3.1/lodash.min.js"></script>
+    <script src="/client.js"></script>
 </head>
-<body>
-<p>Room: <span id="room"></span></p>
-<p>Other participants: <span id="participants"></span></p>
-<video id="localVideo" autoplay></video>
-<script src="/client.js"></script>
+<body ng-controller="ParticipantsController">
+<nav class="navbar navbar-default">
+    <div class="container">
+        <div class="navbar-header">
+            <span class="navbar-brand">{{room}}</span>
+        </div>
+        <span class="navbar-text"><i class="fa fa-user"></i> {{participantsCount()}}</span>
+        <form class="navbar-form navbar-left">
+            <div class="form-group">
+                <input type="text" class="form-control" placeholder="Name" ng-model="name">
+            </div>
+        </form>
+        <ul class="nav navbar-nav navbar-right">
+            <li><a href="/"><i class="fa fa-sign-out"></i> Leave room</a></li>
+        </ul>
+    </div>
+</nav>
+<div class="container">
+    <div class="participant">
+        <div class="content">
+            <webrtc-content peer="self"></webrtc-content>
+        </div>
+        <div class="caption">
+            {{name || "You"}}
+        </div>
+    </div>
+    <div class="participant" ng-repeat="(id, peer) in peers">
+        <div class="content">
+            <webrtc-content peer="peer"></webrtc-content>
+        </div>
+        <div class="caption">
+            {{peer.name}}
+        </div>
+    </div>
+</div>
 </body>
 </html>

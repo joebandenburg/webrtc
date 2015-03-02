@@ -1,0 +1,45 @@
+.participant {
+    float: left;
+    margin: 1em;
+    display: flex;
+    flex-direction: column;
+    background-color: #cccccc;
+}
+
+.participant .content {
+    width: 320px;
+    height: 240px;
+}
+
+.participant .content video {
+    width: 320px;
+    height: 240px;
+}
+
+.participant .content .audio {
+    width: 320px;
+    height: 240px;
+    display: inline-block;
+    font: normal normal normal 14px/1 FontAwesome;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transform: translate(0, 0);
+    font-size: 100px;
+    text-align: center;
+    line-height: 240px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.participant .content .audio:before {
+    content: "\f028";
+}
+
+.participant .content .audio.active {
+    background-color: #5fc3ff;
+    color: white;
+}
+
+.participant .caption {
+    padding: 1em;
+}
