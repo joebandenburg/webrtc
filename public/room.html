@@ -32,17 +32,28 @@
     <div class="participant">
         <div class="content">
             <webrtc-content peer="self"></webrtc-content>
+            <div class="controls">
+            </div>
         </div>
-        <div class="caption">
-            {{name || "You"}}
+        <div class="bottom-bar">
+            <div class="caption">{{name || "You"}}</div>
+            <button class="bigButton fa"
+                    ng-class="{'fa-microphone': !self.muted, 'fa-microphone-slash': self.muted}"
+                    ng-click="self.muted = !self.muted"></button>
+            <button class="bigButton fa fa-video-camera"></button>
         </div>
     </div>
     <div class="participant" ng-repeat="(id, peer) in peers">
         <div class="content">
             <webrtc-content peer="peer"></webrtc-content>
+            <div class="controls">
+            </div>
         </div>
-        <div class="caption">
-            {{peer.name}}
+        <div class="bottom-bar">
+            <div class="caption">{{peer.name}}</div>
+            <button class="bigButton fa"
+                    ng-class="{'fa-volume-up': !peer.muted, 'fa-volume-off': peer.muted}"
+                    ng-click="peer.muted = !peer.muted"></button>
         </div>
     </div>
 </div>

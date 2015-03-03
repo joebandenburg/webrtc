@@ -57,8 +57,9 @@
     });
 
     app.controller("ParticipantsController", function($scope, $interval) {
-        var samples = 32;
-        var threshold = 40;
+        var samples = 512;
+        var smoothing = 0.1;
+        var threshold = -60;
 
         var constraints = {
             audio: true,
@@ -84,30 +85,35 @@
                 var source = audioContext.createMediaStreamSource(stream);
                 var analyser = audioContext.createAnalyser();
                 analyser.fftSize = samples;
+                analyser.smoothingTimeConstant = smoothing;
                 source.connect(analyser);
+                var fftBins = new Float32Array(samples);
 
                 var isTalking = false;
                 var clear = _.debounce(function() {
-                    $scope.$emit("stopTalking");
+                    $scope.$broadcast("stopTalking");
                     isTalking = false;
                 }, 200);
 
                 $interval(function() {
-                    var data = new Uint8Array(samples);
-                    analyser.getByteFrequencyData(data);
-                    var avg = 0;
-                    for (var i = 0; i < samples; i++) {
-                        avg += data[i];
+                    if ($scope.self.muted) {
+                        return;
                     }
-                    avg /= samples;
-                    if (avg > threshold) {
+                    analyser.getFloatFrequencyData(fftBins);
+                    var maxVolume = -Infinity;
+                    for (var i = 4; i < samples; i++) {
+                        if (fftBins[i] > maxVolume && fftBins[i] < 0) {
+                            maxVolume = fftBins[i];
+                        }
+                    }
+                    if (maxVolume > threshold) {
                         if (!isTalking) {
                             isTalking = true;
-                            $scope.$emit("startTalking");
+                            $scope.$broadcast("startTalking");
                         }
                         clear();
                     }
-                }, 10);
+                }, 100);
 
                 $scope.$apply(function() {
                     $scope.self.stream = stream;
@@ -115,7 +121,15 @@
                 ws.send(JSON.stringify({
                     type: "join"
                 }));
-            }, handleError);
+                $scope.$watch("self.muted", function(value) {
+                    localStream.getAudioTracks().forEach(function(audioTrack) {
+                        audioTrack.enabled = !value;
+                    });
+                    if (value) {
+                        $scope.$broadcast("stopTalking");
+                    }
+                });
+            }, handleError("getUserMedia"));
         };
         ws.onmessage = function(event) {
             $scope.$apply(function() {
@@ -125,6 +139,9 @@
                     case "join":
                         peers[message.id] = createPeer(message.id);
                         var peerConnection = peers[message.id].peerConnection;
+                        peerConnection.ondatachannel({
+                            channel: peerConnection.createDataChannel("dataChannel")
+                        });
                         peerConnection.createOffer(function(sessionDescription) {
                             peerConnection.setLocalDescription(sessionDescription, function() {
                                 ws.send(JSON.stringify({
@@ -132,11 +149,14 @@
                                     to: message.id,
                                     description: sessionDescription
                                 }));
-                            }, handleError);
-                        }, handleError);
+                            }, handleError("handle join - setLocalDescription"));
+                        }, handleError("handle join - createOffer"));
                         break;
                     case "leave":
-                        delete peers[message.id];
+                        if (peers[message.id]) {
+                            peers[message.id].$destroy();
+                            delete peers[message.id];
+                        }
                         break;
                     case "offer":
                         peers[message.id] = createPeer(message.id);
@@ -149,13 +169,15 @@
                                         to: message.id,
                                         description: sessionDescription
                                     }));
-                                }, handleError);
-                            }, handleError);
-                        }, handleError);
+                                }, handleError("handle offer - setLocalDescription"));
+                            }, handleError("handle offer - createAnswer"));
+                        }, handleError("handle offer - setRemoteDescription"));
                         break;
                     case "answer":
                         var peerConnection = peers[message.id].peerConnection;
-                        peerConnection.setRemoteDescription(new RTCSessionDescription(message.description), function() {}, handleError);
+                        peerConnection.setRemoteDescription(new RTCSessionDescription(message.description),
+                            function() {},
+                            handleError("handle answer - setRemoteDescription"));
                         break;
                     case "candidate":
                         var peerConnection = peers[message.id].peerConnection;
@@ -164,33 +186,31 @@
                             sdpMid: message.sdpMid,
                             candidate: message.candidate
                         });
-                        peerConnection.addIceCandidate(candidate, function() {}, handleError);
+                        peerConnection.addIceCandidate(candidate, function() {},
+                            handleError("handle candidate - addIceCandidate"));
                         break;
                 }
             });
         };
 
         function createPeer(forId) {
-            var peer = {};
+            var peer = $scope.$new();
+            peer.muted = false;
             peer.peerConnection = new RTCPeerConnection(pc_config, {
                 optional: [{
-                    RtpDataChannels: true
+                    DtlsSrtpKeyAgreement: true
                 }]
             });
             peer.peerConnection.addStream(localStream);
-            peer.dataChannel = peer.peerConnection.createDataChannel("dataChannel", {
-                reliable: false
-            });
-            peer.dataChannel.onmessage = function(e) {
-                if (peer.onDataChannelMessage) {
-                    peer.onDataChannelMessage(e.data);
+            peer.$on("startTalking", function() {
+                if (peer.dataChannel) {
+                    peer.dataChannel.send("startTalking");
                 }
-            };
-            $scope.$on("startTalking", function() {
-                peer.dataChannel.send("startTalking");
             });
-            $scope.$on("stopTalking", function() {
-                peer.dataChannel.send("stopTalking");
+            peer.$on("stopTalking", function() {
+                if (peer.dataChannel) {
+                    peer.dataChannel.send("stopTalking");
+                }
             });
             peer.peerConnection.onicecandidate = function(event) {
                 if (event.candidate) {
@@ -213,19 +233,38 @@
                     peer.stream = null;
                 });
             };
+            peer.peerConnection.ondatachannel = function(event) {
+                peer.dataChannel = event.channel;
+                peer.dataChannel.onerror = handleError("data channel");
+                peer.dataChannel.onmessage = function(e) {
+                    if (peer.onDataChannelMessage) {
+                        peer.onDataChannelMessage(e.data);
+                    }
+                };
+            };
+            peer.$watch("muted", function(value) {
+                if (peer.stream) {
+                    peer.stream.getAudioTracks().forEach(function(audioTrack) {
+                        audioTrack.enabled = !value;
+                    });
+                }
+            });
             return peer;
         }
 
-        function handleError(error) {
-            console.log("Something went wrong", error);
-        }
+        function handleError(location) {
+            return function(error) {
+                console.log("Something went wrong in", location, error);
+            };
+        };
 
         function getRoom() {
             return /^\/rooms\/([a-z0-9A-Z]+)/.exec(location.pathname)[1];
         }
 
         $scope.self = {
-            isSelf: true
+            isSelf: true,
+            muted: false
         };
         $scope.room = room;
         $scope.peers = peers;
