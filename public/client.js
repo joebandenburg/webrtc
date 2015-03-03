@@ -119,7 +119,8 @@
                     $scope.self.stream = stream;
                 });
                 ws.send(JSON.stringify({
-                    type: "join"
+                    type: "join",
+                    name: $scope.self.name
                 }));
                 $scope.$watch("self.muted", function(value) {
                     localStream.getAudioTracks().forEach(function(audioTrack) {
@@ -137,7 +138,7 @@
                 console.log(message);
                 switch (message.type) {
                     case "join":
-                        peers[message.id] = createPeer(message.id);
+                        peers[message.id] = createPeer(message.id, message.name);
                         var peerConnection = peers[message.id].peerConnection;
                         peerConnection.ondatachannel({
                             channel: peerConnection.createDataChannel("dataChannel")
@@ -147,10 +148,16 @@
                                 ws.send(JSON.stringify({
                                     type: "offer",
                                     to: message.id,
+                                    name: $scope.self.name,
                                     description: sessionDescription
                                 }));
                             }, handleError("handle join - setLocalDescription"));
                         }, handleError("handle join - createOffer"));
+                        break;
+                    case "name":
+                        if (peers[message.id]) {
+                            peers[message.id].name = message.name;
+                        }
                         break;
                     case "leave":
                         if (peers[message.id]) {
@@ -159,7 +166,7 @@
                         }
                         break;
                     case "offer":
-                        peers[message.id] = createPeer(message.id);
+                        peers[message.id] = createPeer(message.id, message.name);
                         var peerConnection = peers[message.id].peerConnection;
                         peerConnection.setRemoteDescription(new RTCSessionDescription(message.description), function() {
                             peerConnection.createAnswer(function(sessionDescription) {
@@ -193,9 +200,10 @@
             });
         };
 
-        function createPeer(forId) {
+        function createPeer(forId, name) {
             var peer = $scope.$new();
             peer.muted = false;
+            peer.name = name;
             peer.peerConnection = new RTCPeerConnection(pc_config, {
                 optional: [{
                     DtlsSrtpKeyAgreement: true
@@ -264,12 +272,21 @@
 
         $scope.self = {
             isSelf: true,
-            muted: false
+            muted: false,
+            name: localStorage["name"]
         };
         $scope.room = room;
         $scope.peers = peers;
         $scope.participantsCount = function() {
             return Object.keys(peers).length + 1;
         };
+
+        $scope.$watch("self.name", _.debounce(function(value) {
+            localStorage["name"] = value;
+            ws.send(JSON.stringify({
+                type: "name",
+                name: value
+            }));
+        }, 500));
     });
 })();

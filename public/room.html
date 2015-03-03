@@ -20,7 +20,7 @@
         <span class="navbar-text"><i class="fa fa-user"></i> {{participantsCount()}}</span>
         <form class="navbar-form navbar-left">
             <div class="form-group">
-                <input type="text" class="form-control" placeholder="Name" ng-model="name">
+                <input type="text" class="form-control" placeholder="Name" ng-model="self.name">
             </div>
         </form>
         <ul class="nav navbar-nav navbar-right">
@@ -36,7 +36,7 @@
             </div>
         </div>
         <div class="bottom-bar">
-            <div class="caption">{{name || "You"}}</div>
+            <div class="caption">{{self.name || "You"}}</div>
             <button class="bigButton fa"
                     ng-class="{'fa-microphone': !self.muted, 'fa-microphone-slash': self.muted}"
                     ng-click="self.muted = !self.muted"></button>
