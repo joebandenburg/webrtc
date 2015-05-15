@@ -40,7 +40,7 @@
             <button class="bigButton fa"
                     ng-class="{'fa-microphone': !self.muted, 'fa-microphone-slash': self.muted}"
                     ng-click="self.muted = !self.muted"></button>
-            <button class="bigButton fa fa-video-camera"></button>
+            <button class="bigButton fa fa-video-camera" ng-show="self.hasCamera()"></button>
         </div>
     </div>
     <div class="participant" ng-repeat="(id, peer) in peers">
