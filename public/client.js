@@ -56,7 +56,7 @@
         }
     });
 
-    app.controller("ParticipantsController", function($scope, $interval) {
+    app.controller("ParticipantsController", function($scope, $interval, $location) {
         var samples = 512;
         var smoothing = 0.1;
         var threshold = -60;
@@ -76,8 +76,8 @@
         var localStream;
         var peers = {};
 
-        var wsProtocol = (location.protocol === "https:") ? "wss" : "ws";
-        var ws = new WebSocket(wsProtocol + "://" + location.host + "/websocket?room=" + room);
+        var wsProtocol = ($location.protocol() === "https") ? "wss" : "ws";
+        var ws = new WebSocket(wsProtocol + "://" + $location.host() + "/websocket?room=" + room);
         ws.onopen = function() {
             navigator.getUserMedia(constraints, function(stream) {
                 localStream = stream;
@@ -266,8 +266,11 @@
             };
         };
 
+        // This function relies on a URL format of <host>/rooms/<room name>
         function getRoom() {
-            return /^\/rooms\/([a-z0-9A-Z]+)/.exec(location.pathname)[1];
+            var path = $location.absUrl();
+            var pathComponents = path.split('/');
+            return decodeURIComponent(pathComponents[4]);
         }
 
         $scope.self = {
