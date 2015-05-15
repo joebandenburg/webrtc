@@ -267,15 +267,21 @@
         };
 
         // This function relies on a URL format of <host>/rooms/<room name>
+        // It should probably be improved
         function getRoom() {
             var path = $location.absUrl();
             var pathComponents = path.split('/');
             return decodeURIComponent(pathComponents[4]);
         }
+        
+        function hasCamera () {
+            return localStream && localStream.getVideoTracks().length > 0;
+        }
 
         $scope.self = {
             isSelf: true,
             muted: false,
+            hasCamera: hasCamera,
             name: localStorage["name"]
         };
         $scope.room = room;
